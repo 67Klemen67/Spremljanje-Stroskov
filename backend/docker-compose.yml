@@ -1,0 +1,16 @@
+version: '3.8'
+services:
+  postgres-db:
+    image: postgres:16  # Zaklenjena stabilna verzija
+    container_name: stroski-postgres
+    environment:
+      POSTGRES_USER: stroski_user
+      POSTGRES_PASSWORD: stroski_password
+      POSTGRES_DB: stroski_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata_stroski:/var/lib/postgresql/data  # Novo ime volumna za čist začetek
+
+volumes:
+  pgdata_stroski:
