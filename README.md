@@ -28,7 +28,6 @@ Aplikacija v trenutni fazi deluje kot samostojna rešitev brez neposredne integr
 ## Diagram primerov uporabe (UCD)
 ![Diagram primerov uporabe](ucd_diagram.png)
 
-*(Opomba: Sliko diagrama poimenujte `ucd_diagram.png` in jo shranite v glavno mapo repozitorija ob to README datoteko).*
 
 ---
 
