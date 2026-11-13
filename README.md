@@ -1,11 +1,43 @@
 # Aplikacija za spremljanje stroškov (Expense Tracker)
 
+## Člani skupine
+- Klemen Skuhala
+- Jan Pečnik
+- Semir Slamar
+
+## Vizija projekta
+### Opis rešitve
+Aplikacija "Spremljanje stroškov" je spletni sistem, namenjen preprostemu in učinkovitemu upravljanju osebnih financ. Uporabnikom omogoča sistematično beleženje vsakodnevnih izdatkov in dohodkov ter spremljanje porabe po različnih kategorijah. Cilj aplikacije je povečati finančno pismenost uporabnikov in jim pomagati pri optimizaciji osebnih proračunov s pregledno vizualizacijo njihovih finančnih tokov.
+
+### Ključne funkcionalnosti
+- Beleženje, branje, urejanje in brisanje (CRUD) finančnih transakcij.
+- Kategorizacija stroškov (npr. hrana, prevoz, zabava) po meri uporabnika.
+- Dinamično iskanje po nazivu in razvrščanje podatkov po višini zneska.
+- Sprotni izračun in prikaz trenutne finančne bilance.
+
+### Obseg rešitve in morebitne omejitve
+Aplikacija v trenutni fazi deluje kot samostojna rešitev brez neposredne integracije z bančnimi API-ji v živo, zato je vnos transakcij ročen. Podpira beleženje zneskov v enotni valuti in zaenkrat ne vključuje večuporabniških družinskih računov ter zahtevnejših finančnih predvidevanj (forecasting).
+
+## Besednjak
+- **Transakcija:** Posamezen dogodek priliva (dohodek) ali odliva (strošek) finančnih sredstev z določenim zneskom in datumom.
+- **Bilanca:** Trenutno stanje razpoložljivih finančnih sredstev uporabnika, izračunano kot razlika med vsemi prihodki in odhodki.
+- **Kategorija izdatka:** Tematska skupina, v katero uporabnik uvrsti posamezno transakcijo za lažjo analizo porabe.
+- **Proračun (Budget):** Ciljna finančna omejitev, ki si jo uporabnik določi za posamezno kategorijo ali časovno obdobje.
+- **Mesečni limit:** Opozorilna vrednost, pri kateri sistem uporabnika obvesti, da se bliža prekoračitvi načrtovanih izdatkov.
+
+## Diagram primerov uporabe (UCD)
+![Diagram primerov uporabe](ucd_diagram.png)
+
+*(Opomba: Sliko diagrama poimenujte `ucd_diagram.png` in jo shranite v glavno mapo repozitorija ob to README datoteko).*
+
+---
+
 ## O projektu
-Aplikacija "Spremljanje stroškov" je spletni sistem, namenjen beleženju, pregledovanju in upravljanju osebnih finančnih izdatkov. Glavni cilj projekta je uporabnikom omogočiti boljši pregled nad financami in načrtovanjem proračuna. Sistem podpira vse osnovne CRUD operacije nad stroški ter dodatne funkcionalnosti, kot sta dinamično iskanje po nazivu in razvrščanje podatkov po višini zneska. Projekt je zasnovan po strogo ločeni arhitekturi backend-a in frontend-a.
+Aplikacija je zasnovana po strogo ločeni arhitekturi zaledja (backend) in obličja (frontend). Glavni cilj projekta je uporabnikom omogočiti boljši pregled nad financami in načrtovanjem proračuna. 
 
 ## Uporabljene tehnologije
 **Zaledje (Backend):**
-- **Java** (JDK 17+)
+- **Java** (JDK 17)
 - **Spring Boot** (ogrodje za REST API)
 - **Spring Data JPA** (za ORM in komunikacijo z bazo)
 - **PostgreSQL** (relacijska podatkovna baza)
@@ -17,12 +49,12 @@ Aplikacija "Spremljanje stroškov" je spletni sistem, namenjen beleženju, pregl
 - **Node.js / npm** (paketni upravljalnik)
 
 **Infrastruktura:**
-- **Docker & Docker Compose** (za kontejnerizacijo podatkovne baze)
+- **Docker** (v 24.0) & **Docker Compose** (v 2.0) (za kontejnerizacijo podatkovne baze)
 
 ## Struktura projekta
 Projekt je strogo ločen na obličje in zaledje:
 
-
+```text
 📦 Vaja-Stroski (Glavna mapa)
  ┣ 📂 backend/               # Zaledni sistem (Spring Boot)
  ┃ ┣ 📂 src/main/java/...    # Izvorna koda (modeli, repozitoriji, kontrolerji)
@@ -34,7 +66,7 @@ Projekt je strogo ločen na obličje in zaledje:
  ┃ ┣ 📜 package.json         # Seznam npm paketov in skript
  ┃ ┗ 📜 vite.config.js       # Vite konfiguracija
  ┗ 📜 README.md              # Dokumentacija projekta
-
+```
  # Navodila za nameščanje in zagon
  Za uspešen zagon aplikacije moramo imeti nameščene naslednje predpostavke:
  
