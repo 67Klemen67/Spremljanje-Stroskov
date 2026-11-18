@@ -107,3 +107,61 @@ Funkcionalnost se implementira na obličju (`frontend/src/App.jsx`). Ob kliku na
 **Opis:** V orodno vrstico ob iskalniku in razvrščanju dodaj gumb "Izvozi v CSV" ter pod orodno vrstico dodaj izpis opozorila v primeru poskusa izvoza praznega seznama.
 
 **Odgovorni član:** Klemen Skuhala
+
+---
+
+## US-JAN-01: Dodajanje nove kategorije med vnosom stroška
+
+**Odgovorni član:** Jan Pečnik  
+**Prioriteta:** Srednja  
+**Ocena zahtevnosti:** 5 Story Points
+
+### Uporabniška zgodba
+
+Kot uporabnik želim med vnosom stroška ustvariti novo kategorijo, kadar ustrezna še ne obstaja, da jo lahko takoj uporabim pri stroških.
+
+### Sprejemni kriteriji
+
+1. **Given:** Pri vnosu stroška na seznamu kategorij ni želene kategorije.  
+   **When:** Izberem "+ Dodaj novo kategorijo", vnesem ime "Hrana" in kliknem "Potrdi".  
+   **Then:** Kategorija se shrani, pojavi se na seznamu kategorij in je izbrana v obrazcu za strošek.
+
+2. **Given:** Kategorija "Hrana" že obstaja.  
+   **When:** Poskusim dodati kategorijo "hrana" (z malo začetnico).  
+   **Then:** Sistem kategorije ne podvoji, v obrazcu izbere obstoječo kategorijo "Hrana" in pod vnosnim poljem izpiše, da kategorija že obstaja.
+
+3. **Given:** Odprto je okno za vnos nove kategorije.  
+   **When:** Poskusim shraniti prazno ime ali ime, daljše od 30 znakov.  
+   **Then:** Sistem ničesar ne shrani in pod vnosnim poljem izpiše sporočilo o napaki.
+
+4. **Given:** Odprto je okno za vnos nove kategorije, v obrazcu za strošek pa sem že vnesel naziv in znesek.  
+   **When:** Kliknem "Prekliči".  
+   **Then:** Okno se zapre, nova kategorija se ne ustvari, naziv in znesek v obrazcu ostaneta nespremenjena.
+
+### Podrobnosti implementacije
+
+Backend: nov entitetni razred `Kategorija` (polji `id`, `naziv`), `KategorijaRepository` z metodo `findByNazivIgnoreCase` in `KategorijaController` z `GET /kategorije` ter `POST /kategorije`. Pri POST-u se naziv obreže, preveri se, da ni prazen in ni daljši od 30 znakov (sicer vrne napako 400), nato se preveri, ali kategorija že obstaja (velike in male črke se ne upoštevajo). Če obstaja, jo vrne in je ne podvoji.
+
+Frontend (`App.jsx`): polje `kategorija` je spustni seznam, napolnjen iz `GET /kategorije`. Možnost "+ Dodaj novo kategorijo" odpre okno (`<dialog>`) z vnosnim poljem ter gumboma "Potrdi" in "Prekliči". Napake in obvestilo o že obstoječi kategoriji se izpišejo v oknu pod poljem. Pri podvojenem imenu frontend obstoječo kategorijo izbere v obrazcu.
+
+Entiteta `Strosek` ostane nespremenjena, ker polje `kategorija` ostane besedilo. Tabelo `kategorija` ustvari Hibernate samodejno (`ddl-auto=update`).
+
+### Podnaloge
+
+#### 1. Backend: entiteta, repozitorij in controller za kategorije
+
+**Opis:** Ustvari razred `Kategorija`, `KategorijaRepository` in `KategorijaController` z `GET /kategorije` ter `POST /kategorije`. V POST dodaj preverjanje praznega in predolgega imena (napaka 400) ter preverjanje podvojenega imena brez upoštevanja velikih črk.
+
+**Odgovorni član:** Jan Pečnik
+
+#### 2. Frontend: spustni seznam kategorij in okno za novo kategorijo
+
+**Opis:** V `App.jsx` zamenjaj besedilno polje za kategorijo s spustnim seznamom, napolnjenim iz `GET /kategorije`. Dodaj možnost "+ Dodaj novo kategorijo", ki odpre okno z vnosnim poljem, gumboma "Potrdi" in "Prekliči" ter izpisom napak pod poljem.
+
+**Odgovorni član:** Jan Pečnik
+
+#### 3. Preveri sprejemne kriterije
+
+**Opis:** Preveri dodajanje nove kategorije, podvojeno ime z drugačnimi velikimi črkami, prazno in predolgo ime ter preklic z ohranitvijo vnesenih podatkov v obrazcu.
+
+**Odgovorni član:** Jan Pečnik

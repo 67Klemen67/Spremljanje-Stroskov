@@ -19,7 +19,13 @@ function App() {
   const [iskanje, setIskanje] = useState('');
   const [sortiranje, setSortiranje] = useState('');
 
+  const [kategorije, setKategorije] = useState([]);
+  const [oknoOdprto, setOknoOdprto] = useState(false);
+  const [novaKategorija, setNovaKategorija] = useState('');
+  const [sporocilo, setSporocilo] = useState('');
+
   const API_URL = 'http://localhost:8080/stroski';
+  const KATEGORIJE_URL = 'http://localhost:8080/kategorije';
 
   // Posodobljena fetch funkcija, ki v URL doda parametre
   const naloziStroske = useCallback(async () => {
@@ -60,6 +66,13 @@ function App() {
     naloziStroske();
   }, [naloziStroske]);
 
+  useEffect(() => {
+  fetch(KATEGORIJE_URL)
+    .then(r => (r.ok ? r.json() : []))
+    .catch(() => [])                    
+    .then(setKategorije);
+}, []);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (editingId) {
@@ -89,6 +102,53 @@ function App() {
     setForm({ naziv: strosek.naziv, znesek: strosek.znesek, kategorija: strosek.kategorija });
     setEditingId(strosek.id);
   };
+
+ const handleKategorija = (e) => {
+  if (e.target.value === '__nova__') {
+    setNovaKategorija('');
+    setSporocilo('');
+    setOknoOdprto(true);
+    return;
+  }
+  setForm({ ...form, kategorija: e.target.value });
+};
+
+const zapriOkno = () => {
+  setOknoOdprto(false);
+  setNovaKategorija('');
+  setSporocilo('');
+};
+
+const potrdiKategorijo = async () => {
+  const naziv = novaKategorija.trim();
+
+  if (naziv === '' || naziv.length > 30) {
+    setSporocilo('Ime ne sme biti prazno ali daljše od 30 znakov.');
+    return;
+  }
+
+  const obstojeca = kategorije.find(k => k.naziv.toLowerCase() === naziv.toLowerCase());
+  if (obstojeca) {
+    setForm({ ...form, kategorija: obstojeca.naziv });
+    setSporocilo('Kategorija že obstaja, izbrana je obstoječa.');
+    return;
+  }
+
+  try {
+    const res = await fetch('http://localhost:8080/kategorije', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ naziv })
+    });
+    if (!res.ok) throw new Error('Napaka');
+    const nova = await res.json();
+    setKategorije([...kategorije, nova]);
+    setForm({ ...form, kategorija: nova.naziv });
+    zapriOkno();
+  } catch (error) {
+    setSporocilo('Kategorije ni bilo mogoče shraniti, poskusi znova.');
+  }
+};
 
   // Izračun skupnih stroškov in trenutne bilance in preverjanje pravilnosti vnosa začetne bilance
   const skupniStroski = vsiStroski.reduce(
@@ -159,6 +219,21 @@ function App() {
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif', maxWidth: '800px', margin: '0 auto' }}>
       <h1>Spremljanje stroškov</h1>
+      {oknoOdprto && (
+      <dialog open>
+        <h3>Nova kategorija</h3>
+        <input
+          type="text"
+          autoFocus
+          placeholder="Ime nove kategorije"
+          value={novaKategorija}
+          onChange={e => setNovaKategorija(e.target.value)}
+        />
+        {sporocilo && <p role="alert">{sporocilo}</p>}
+        <button type="button" onClick={zapriOkno}>Prekliči</button>
+        <button type="button" onClick={potrdiKategorijo}>Potrdi</button>
+      </dialog>
+    )}
       {/* Obrazec za začetno bilanco */}
       <form onSubmit={shraniBilanco} style={{ marginBottom: '20px' }}>
         <label htmlFor="zacetna-bilanca">Začetna bilanca (€): </label>
@@ -187,7 +262,11 @@ function App() {
       <form onSubmit={handleSubmit} style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>
         <input type="text" placeholder="Naziv" value={form.naziv} required onChange={e => setForm({...form, naziv: e.target.value})} />
         <input type="number" step="0.01" placeholder="Znesek (€)" value={form.znesek} required onChange={e => setForm({...form, znesek: e.target.value})} />
-        <input type="text" placeholder="Kategorija" value={form.kategorija} required onChange={e => setForm({...form, kategorija: e.target.value})} />
+        <select value={form.kategorija} required onChange={handleKategorija}>
+          <option value="">Izberi kategorijo</option>
+          {kategorije.map(k => <option key={k.id} value={k.naziv}>{k.naziv}</option>)}
+          <option value="__nova__">+ Dodaj novo kategorijo</option>
+        </select>
         <button type="submit">{editingId ? 'Posodobi' : 'Dodaj strošek'}</button>
       </form>
 
