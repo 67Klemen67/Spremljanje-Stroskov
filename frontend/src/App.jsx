@@ -7,10 +7,11 @@ function App() {
   const [zacetnaBilanca, setZacetnaBilanca] = useState(
     () => localStorage.getItem('zacetnaBilanca') ?? ''
   );
-  const[vnosBilance, setVnosBilance] = useState(
+  const [vnosBilance, setVnosBilance] = useState(
     () => localStorage.getItem('zacetnaBilanca') ?? ''
   );
   const [napakaBilance, setNapakaBilance] = useState('');
+  const [napakaIzvoza, setNapakaIzvoza] = useState('');
   const [form, setForm] = useState({ naziv: '', znesek: '', kategorija: '' });
   const [editingId, setEditingId] = useState(null);
   
@@ -27,7 +28,7 @@ function App() {
       if (iskanje) params.append('iskanje', iskanje);
       if (sortiranje) params.append('sortiranje', sortiranje);
 
-      // // Filtriran seznam je za tabelo, vsi stroški pa za pravilen izračun bilance.
+      // Filtriran seznam je za tabelo, vsi stroški pa za pravilen izračun bilance.
       const url = params.toString() ? `${API_URL}?${params.toString()}` : API_URL;
 
       const [response, vsiResponse] = await Promise.all([
@@ -46,6 +47,9 @@ function App() {
 
       setStroski(data);
       setVsiStroski(vsi);
+      if (data.length > 0) {
+        setNapakaIzvoza('');
+      }
     } catch (error) {
       console.error("Napaka pri povezavi z zaledjem:", error);
     }
@@ -85,10 +89,11 @@ function App() {
     setForm({ naziv: strosek.naziv, znesek: strosek.znesek, kategorija: strosek.kategorija });
     setEditingId(strosek.id);
   };
+
   // Izračun skupnih stroškov in trenutne bilance in preverjanje pravilnosti vnosa začetne bilance
   const skupniStroski = vsiStroski.reduce(
-  (skupaj, strosek) => skupaj + Number(strosek.znesek),
-  0
+    (skupaj, strosek) => skupaj + Number(strosek.znesek),
+    0
   );
 
   const trenutnaBilanca =
@@ -117,6 +122,40 @@ function App() {
     setVnosBilance(shranjenaVrednost);
     setNapakaBilance('');
   };
+
+  // Izvoz trenutno prikazanih stroškov v CSV datoteko (US-KLE-01)
+  const izvoziVCsv = () => {
+    if (stroski.length === 0) {
+      setNapakaIzvoza('Izvoz ni mogoč, ker na seznamu ni nobenega stroška.');
+      return;
+    }
+
+    setNapakaIzvoza('');
+
+    const glava = ['ID', 'Naziv', 'Znesek (EUR)', 'Kategorija'];
+    const vrstice = stroski.map(s => [
+      s.id,
+      `"${String(s.naziv).replace(/"/g, '""')}"`,
+      Number(s.znesek).toFixed(2),
+      `"${String(s.kategorija).replace(/"/g, '""')}"`
+    ]);
+
+    const csvVsebina = [
+      glava.join(';'),
+      ...vrstice.map(v => v.join(';'))
+    ].join('\n');
+
+    const blob = new Blob(['\uFEFF' + csvVsebina], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const povezava = document.createElement('a');
+    povezava.href = url;
+    povezava.setAttribute('download', 'stroski.csv');
+    document.body.appendChild(povezava);
+    povezava.click();
+    document.body.removeChild(povezava);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif', maxWidth: '800px', margin: '0 auto' }}>
       <h1>Spremljanje stroškov</h1>
@@ -152,7 +191,7 @@ function App() {
         <button type="submit">{editingId ? 'Posodobi' : 'Dodaj strošek'}</button>
       </form>
 
-      {/* DODATNE FUNKCIONALNOSTI: Iskanje in Razvrščanje */}
+      {/* DODATNE FUNKCIONALNOSTI: Iskanje, Razvrščanje in Izvoz v CSV */}
       <div style={{ marginBottom: '15px', display: 'flex', gap: '15px', padding: '10px', backgroundColor: '#e9ecef', borderRadius: '5px' }}>
         <input 
           type="text" 
@@ -166,7 +205,16 @@ function App() {
           <option value="znesekAsc">Znesek: od najnižjega</option>
           <option value="znesekDesc">Znesek: od najvišjega</option>
         </select>
+        <button type="button" onClick={izvoziVCsv} style={{ padding: '5px 12px', cursor: 'pointer' }}>
+          Izvozi v CSV
+        </button>
       </div>
+
+      {napakaIzvoza && (
+        <p role="alert" style={{ color: '#b00020', fontWeight: 'bold', marginBottom: '15px' }}>
+          {napakaIzvoza}
+        </p>
+      )}
       
       {/* Tabela */}
       <table border="1" cellPadding="10" style={{ borderCollapse: 'collapse', width: '100%', textAlign: 'left' }}>
