@@ -2,6 +2,15 @@ import { useState, useEffect, useCallback } from 'react';
 
 function App() {
   const [stroski, setStroski] = useState([]);
+  const [vsiStroski, setVsiStroski] = useState([]);
+
+  const [zacetnaBilanca, setZacetnaBilanca] = useState(
+    () => localStorage.getItem('zacetnaBilanca') ?? ''
+  );
+  const[vnosBilance, setVnosBilance] = useState(
+    () => localStorage.getItem('zacetnaBilanca') ?? ''
+  );
+  const [napakaBilance, setNapakaBilance] = useState('');
   const [form, setForm] = useState({ naziv: '', znesek: '', kategorija: '' });
   const [editingId, setEditingId] = useState(null);
   
@@ -18,10 +27,25 @@ function App() {
       if (iskanje) params.append('iskanje', iskanje);
       if (sortiranje) params.append('sortiranje', sortiranje);
 
+      // // Filtriran seznam je za tabelo, vsi stroški pa za pravilen izračun bilance.
       const url = params.toString() ? `${API_URL}?${params.toString()}` : API_URL;
-      const response = await fetch(url);
-      const data = await response.json();
+
+      const [response, vsiResponse] = await Promise.all([
+        fetch(url),
+        fetch(API_URL)
+      ]);
+
+      if (!response.ok || !vsiResponse.ok) {
+        throw new Error('Stroškov ni bilo mogoče naložiti.');
+      }
+
+      const [data, vsi] = await Promise.all([
+        response.json(),
+        vsiResponse.json()
+      ]);
+
       setStroski(data);
+      setVsiStroski(vsi);
     } catch (error) {
       console.error("Napaka pri povezavi z zaledjem:", error);
     }
@@ -61,10 +85,64 @@ function App() {
     setForm({ naziv: strosek.naziv, znesek: strosek.znesek, kategorija: strosek.kategorija });
     setEditingId(strosek.id);
   };
+  // Izračun skupnih stroškov in trenutne bilance in preverjanje pravilnosti vnosa začetne bilance
+  const skupniStroski = vsiStroski.reduce(
+  (skupaj, strosek) => skupaj + Number(strosek.znesek),
+  0
+  );
 
+  const trenutnaBilanca =
+    zacetnaBilanca === ''
+      ? null
+      : Number(zacetnaBilanca) - skupniStroski;
+
+  const shraniBilanco = (e) => {
+    e.preventDefault();
+
+    const vrednost = Number(vnosBilance);
+
+    if (
+      vnosBilance.trim() === '' ||
+      !Number.isFinite(vrednost) ||
+      vrednost < 0
+    ) {
+      setNapakaBilance('Vnesi veljavno bilanco, ki je 0 ali več.');
+      return;
+    }
+
+    const shranjenaVrednost = String(vrednost);
+
+    localStorage.setItem('zacetnaBilanca', shranjenaVrednost);
+    setZacetnaBilanca(shranjenaVrednost);
+    setVnosBilance(shranjenaVrednost);
+    setNapakaBilance('');
+  };
   return (
     <div style={{ padding: '20px', fontFamily: 'sans-serif', maxWidth: '800px', margin: '0 auto' }}>
       <h1>Spremljanje stroškov</h1>
+      {/* Obrazec za začetno bilanco */}
+      <form onSubmit={shraniBilanco} style={{ marginBottom: '20px' }}>
+        <label htmlFor="zacetna-bilanca">Začetna bilanca (€): </label>
+        <input
+          id="zacetna-bilanca"
+          type="number"
+          min="0"
+          step="0.01"
+          required
+          value={vnosBilance}
+          onChange={e => setVnosBilance(e.target.value)}
+        />
+        <button type="submit">Shrani bilanco</button>
+      </form>
+
+      {napakaBilance && <p role="alert">{napakaBilance}</p>}
+
+      {trenutnaBilanca !== null && (
+        <div>
+          <p>Začetna bilanca: {Number(zacetnaBilanca).toFixed(2)} €</p>
+          <p>Trenutna bilanca: {trenutnaBilanca.toFixed(2)} €</p>
+        </div>
+      )}
       
       {/* Obrazec za vnos */}
       <form onSubmit={handleSubmit} style={{ marginBottom: '20px', display: 'flex', gap: '10px' }}>

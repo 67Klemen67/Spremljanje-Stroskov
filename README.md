@@ -122,3 +122,7 @@ Za prispevanje k projektu sledite standardnemu Git poteku dela:
 2. Komentarji: Koda naj bo komentirana tam, kjer kompleksnost logike to zahteva, še posebej pri komunikaciji med FE in BE komponentami.
 
 3. Arhitektura: Strogo ohranjajte ločenost! Frontend koda ne sme vsebovati nobenih direktnih klicev v podatkovno bazo, zaledje pa ne sme generirati HTML kode (vrača naj izključno JSON).
+
+## Uporabniške zgodbe
+
+Podrobnosti so v datoteki [docs/user-stories.md](docs/user-stories.md).
