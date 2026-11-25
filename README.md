@@ -29,6 +29,59 @@ Aplikacija v trenutni fazi deluje kot samostojna rešitev brez neposredne integr
 ![Diagram primerov uporabe](ucd_diagram.png)
 
 
+## Razredni diagram
+
+![Razredni diagram](razredni_diagram.png)
+
+*Izvorna koda diagrama (PlantUML): [razredni_diagram.puml](razredni_diagram.puml). Diagram je v polni velikosti viden s klikom na sliko.*
+
+Diagram prikazuje celotno zasnovo aplikacije: tisto, kar je že implementirano (bele barve), in funkcionalnosti iz DPU, ki še niso implementirane (**PU-02 do PU-05**, modro s črtkanim robom).
+
+### Vloga in namen razredov
+
+| Sloj | Razred | Vloga in namen |
+|---|---|---|
+| Obličje | `App` | Glavna React komponenta. Hrani stanje (seznam stroškov, obrazec, iskanje, razvrščanje, začetna bilanca) in kliče REST API zaledja. |
+| Obličje | `NovaKategorijaOkno` | Pogovorno okno za vnos nove kategorije med vnosom stroška (PU-01). Obstaja samo kot del `App` (kompozicija). |
+| Obličje | `UpravljanjeKategorijStran` | Stran administratorja za dodajanje, preimenovanje in brisanje kategorij (PU-02). |
+| Obličje | `ProracunStran` | Stran za nastavitev proračuna za izbrano obdobje (PU-03). |
+| Obličje | `PorabaPoKategorijahStran` | Stran s tabelo porabe po kategorijah (PU-04). |
+| Obličje | `BilancaStran` | Stran s proračunom, porabo in preostankom (PU-05). |
+| Controllers | `StrosekController` | REST API `/stroski`: CRUD nad stroški, iskanje po nazivu in razvrščanje po znesku. |
+| Controllers | `KategorijaController` | REST API `/kategorije`: seznam kategorij, nova kategorija (preverjanje imena, brez podvajanja), preimenovanje in brisanje s prenosom stroškov. |
+| Controllers | `ProracunController` | REST API `/proracun`: branje in shranjevanje proračuna za obdobje. |
+| Controllers | `PregledController` | REST API `/pregled`: samo branje, izračun porabe po kategorijah in bilance. |
+| Repositories | `JpaRepository<T, ID>` | Spring Data vmesnik z osnovnimi operacijami nad bazo. Vsi repozitoriji ga razširjajo (dedovanje). |
+| Repositories | `StrosekRepository`, `KategorijaRepository`, `ProracunRepository` | Dostop do podatkov. Poleg podedovanih operacij vsebujejo poizvedbe (iskanje, vsote, štetje). |
+| Models | `Strosek` | Entiteta: posamezen strošek (naziv, znesek, datum, kategorija). |
+| Models | `Kategorija` | Entiteta: kategorija stroškov. Število stroškov v kategoriji je izpeljan atribut. |
+| Models | `Proracun` | Entiteta: znesek, ki si ga uporabnik dovoli porabiti v obdobju. |
+| Models | `Bilanca` | DTO: rezultat izračuna bilance (proračun, skupni stroški, preostanek, odstotek). |
+| Models | `PorabaPoKategoriji` | DTO: ena vrstica pregleda porabe (kategorija, skupni znesek, delež). |
+
+### Ključne metode po funkcionalnostih
+
+| Funkcionalnost | Ključne metode | Naloga |
+|---|---|---|
+| Vnos, urejanje, brisanje stroška | `App.handleSubmit`, `handleEdit`, `handleDelete` → `StrosekController.dodajStrosek`, `posodobiStrosek`, `izbrisiStrosek` | Obličje pošlje zahtevo (POST, PUT, DELETE), kontroler pa spremembo shrani prek `JpaRepository.save` oziroma `deleteById`. |
+| Iskanje in razvrščanje | `App.naloziStroske` → `StrosekController.vrniVseStroske` → `StrosekRepository.findByNazivContainingIgnoreCase` | Vrne stroške, ki ustrezajo iskanemu nizu, razvrščene po znesku. Po vnosu, urejanju in brisanju se kliče znova (`<<include>>` iz DPU). |
+| Dodajanje nove kategorije (`<<extend>>`) | `App.handleKategorija`, `NovaKategorijaOkno.potrdiKategorijo` → `KategorijaController.novaKategorija` → `KategorijaRepository.findByNazivIgnoreCase` | Odpre okno, preveri ime (neprazno, največ 30 znakov), ne podvaja kategorij (velike črke se ne upoštevajo) in jo shrani. |
+| Upravljanje kategorij (PU-02) | `UpravljanjeKategorijStran.preimenujKategorijo`, `izbrisiKategorijo` → `KategorijaController.preimenujKategorijo`, `izbrisiKategorijo` | Preimenuje ali izbriše kategorijo. Pri brisanju kategorije s stroški jih prek `StrosekRepository.countByKategorija` in `prenesiStroske` prenese v drugo kategorijo. |
+| Nastavitev proračuna (PU-03) | `ProracunStran.shraniProracun` → `ProracunController.shraniProracun` → `ProracunRepository.findByZacetekObdobjaAndKonecObdobja` | Preveri, da je znesek pozitiven. Če proračun za obdobje že obstaja, ga prepiše, sicer ustvari novega. |
+| Pregled porabe po kategorijah (PU-04) | `PorabaPoKategorijahStran.naloziPorabo` → `PregledController.vrniPorabo` → `StrosekRepository.vsotaPoKategorijah` | Sešteje stroške po kategorijah v obdobju in vrne `PorabaPoKategoriji` (znesek in delež). |
+| Pregled bilance (PU-05) | `BilancaStran.naloziBilanco` → `PregledController.vrniBilanco` → `StrosekRepository.vsotaZneskov`, `Bilanca.jePresezen` | Prebere proračun, sešteje stroške, izračuna preostanek in odstotek ter ugotovi, ali je proračun presežen. |
+| Začetna bilanca (US-SEM-01) | `App.shraniBilanco`, izpeljan atribut `trenutnaBilanca` | Preveri vnos, shrani začetno bilanco v `localStorage` in izračuna trenutno bilanco (začetna minus vsi stroški). |
+| Izvoz v CSV (US-KLE-01) | `App.izvoziVCsv` | Prikazani seznam stroškov pretvori v datoteko `stroski.csv` ali pokaže opozorilo, če je seznam prazen. |
+
+### Opombe k diagramu
+
+- **Povezave:** polna črta s praznim trikotnikom je dedovanje (repozitoriji razširjajo `JpaRepository`, oznaka `<<bind>>` pove konkretna parametra), polna črta s polnim rombom je kompozicija, polna črta z odprto puščico je asociacija, črtkana črta z odprto puščico pa odvisnost (REST klic obličja na zaledje ali ustvarjanje objekta).
+- **Polja tipa razreda** (npr. repozitoriji v kontrolerjih, `Strosek.kategorija`) so prikazana kot atribut in hkrati kot asociacija z množičnostjo.
+- **Spremembe glede na trenutno kodo:** za PU-02 do PU-05 mora `Strosek` dobiti atribut `datum`, polje `kategorija` pa se spremeni iz `String` v povezavo na `Kategorija` (strošek brez kategorije je dovoljen, zato množičnost `0..1`). Tako sta mogoča štetje in prenos stroškov med kategorijami ter filtriranje po obdobju.
+- **React komponente** so funkcijske, zato so v diagramu prikazane kot razredi s stereotipom `<<komponenta>>`. `NovaKategorijaOkno` je v kodi element `<dialog>` znotraj `App.jsx`, tu pa je izločen kot logični del.
+- Zaradi preglednosti niso prikazane `get`/`set` metode in zagonski razred `StroskiApplication`.
+
+
 ---
 
 ## O projektu
